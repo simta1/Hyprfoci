@@ -145,7 +145,13 @@ void onActiveWindow(void *self, std::any data) {
 }
 
 void onConfigReload(void *self, std::any data) {
-  const auto PWINDOW = g_pCompositor->m_lastWindow.lock();
+  PHLWINDOW PWINDOW = nullptr;
+  for (auto &w : g_pCompositor->m_windows) {
+    if (g_pCompositor->isWindowActive(w)) {
+      PWINDOW = w;
+      break;
+    }
+  }
 
   if (current) {
     HyprlandAPI::removeWindowDecoration(PHANDLE, current);
