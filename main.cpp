@@ -1,6 +1,7 @@
 #include "CDotDecoration.hpp"
 #include "cairo.h"
 #include "globals.hpp"
+#include <hyprland/src/event/EventBus.hpp>
 
 #include <GLES2/gl2ext.h>
 #include <filesystem>
@@ -116,8 +117,7 @@ void initialLoad() {
   }
 }
 
-void onCloseWindow(void *self, std::any data) {
-  const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
+void onCloseWindow(PHLWINDOW PWINDOW) {
   auto square = current;
 
   if (current && current->getOwner() == PWINDOW) {
@@ -126,8 +126,7 @@ void onCloseWindow(void *self, std::any data) {
   }
 }
 
-void onActiveWindow(void *self, std::any data) {
-  const auto PWINDOW = std::any_cast<PHLWINDOW>(data);
+void onActiveWindow(PHLWINDOW PWINDOW) {
 
   if (!isTextureLoaded)
     initialLoad();
@@ -144,7 +143,7 @@ void onActiveWindow(void *self, std::any data) {
   }
 }
 
-void onConfigReload(void *self, std::any data) {
+void onConfigReload() {
   PHLWINDOW PWINDOW = nullptr;
   for (auto &w : g_pCompositor->m_windows) {
     if (g_pCompositor->isWindowActive(w)) {
@@ -199,21 +198,15 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
   HyprlandAPI::addConfigValue(PHANDLE, "plugin:hyprfoci:imgs",
                               Hyprlang::STRING{"none"});
 
-  static auto P = HyprlandAPI::registerCallbackDynamic(
-      PHANDLE, "closeWindow",
-      [&](void *self, SCallbackInfo &info, std::any data) {
-        onCloseWindow(self, data);
+  static auto P = Event::bus()->m_events.window.close.listen([](auto PWINDOW) {
+        onCloseWindow(PWINDOW);
       });
 
-  static auto P1 = HyprlandAPI::registerCallbackDynamic(
-      PHANDLE, "activeWindow",
-      [&](void *self, SCallbackInfo &info, std::any data) {
-        onActiveWindow(self, data);
+  static auto P1 = Event::bus()->m_events.window.active.listen([](auto PWINDOW, auto r) {
+        onActiveWindow(PWINDOW);
       });
-  static auto P2 = HyprlandAPI::registerCallbackDynamic(
-      PHANDLE, "configReloaded",
-      [&](void *self, SCallbackInfo &info, std::any data) {
-        onConfigReload(self, data);
+  static auto P2 = Event::bus()->m_events.config.reloaded.listen([]() {
+        onConfigReload();
       });
 
   // generate a deco for current window if exists

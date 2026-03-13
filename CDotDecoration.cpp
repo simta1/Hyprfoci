@@ -12,6 +12,7 @@
 #include <hyprlang.hpp>
 #include <hyprutils/memory/UniquePtr.hpp>
 #include <string>
+#include <hyprland/src/event/EventBus.hpp>
 
 CDotDecoration::CDotDecoration(PHLWINDOW pWindow)
     : IHyprWindowDecoration(pWindow) {
@@ -29,10 +30,9 @@ CDotDecoration::CDotDecoration(PHLWINDOW pWindow)
 
   if (g_pTextures["both.png"]) {
     m_pTexture = g_pTextures["both.png"];
-    m_pKeypressCallback = HyprlandAPI::registerCallbackDynamic(
-        PHANDLE, "keyPress",
-        [&](void *self, SCallbackInfo &info, std::any data) {
-          onKeypress(info, data);
+    m_pKeypressCallback = Event::bus()->m_events.input.keyboard.key.listen(
+        [this](IKeyboard::SKeyEvent event, Event::SCallbackInfo& info) {
+          onKeypress(info, event);
         });
   } else if (g_pTexture) {
     m_pTexture = g_pTexture;
@@ -41,10 +41,7 @@ CDotDecoration::CDotDecoration(PHLWINDOW pWindow)
   const auto PMONITOR = pWindow->m_monitor.lock();
 }
 
-void CDotDecoration::onKeypress(SCallbackInfo &info, std::any data) {
-  auto const keyEvent =
-      std::any_cast<std::unordered_map<std::string, std::any>>(data);
-  auto const event = std::any_cast<IKeyboard::SKeyEvent>(keyEvent.at("event"));
+void CDotDecoration::onKeypress(Event::SCallbackInfo &info, IKeyboard::SKeyEvent event) {
   auto const hand = getHandForKeyEvent(event);
 
   std::string textureName;
